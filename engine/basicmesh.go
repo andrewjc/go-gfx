@@ -2,7 +2,11 @@ package engine
 
 import "github.com/go-gl/gl/v4.1-core/gl"
 
-type Mesh struct {
+type Mesh interface {
+	Draw(shader *ShaderProgram)
+}
+
+type BasicMesh struct {
 	Vertices     []float32
 	Indices      []uint32
 	IndicesCount int32
@@ -11,7 +15,7 @@ type Mesh struct {
 	Ebo          uint32
 }
 
-func NewMesh(vertices []float32, indices []uint32) *Mesh {
+func NewBasicMesh(vertices []float32, indices []uint32) *BasicMesh {
 	var vao, vbo, ebo uint32
 
 	gl.GenVertexArrays(1, &vao)
@@ -49,7 +53,7 @@ func NewMesh(vertices []float32, indices []uint32) *Mesh {
 	// unbind the VAO (safe practice so we don't accidentally (mis)configure it later)
 	gl.BindVertexArray(0)
 
-	return &Mesh{
+	return &BasicMesh{
 		Vao:          vao,
 		Vbo:          vbo,
 		Ebo:          ebo,
@@ -57,7 +61,7 @@ func NewMesh(vertices []float32, indices []uint32) *Mesh {
 	}
 }
 
-func (m *Mesh) Draw(shader *ShaderProgram) {
+func (m *BasicMesh) Draw(shader *ShaderProgram) {
 	gl.BindVertexArray(m.Vao)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.Ebo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, m.Vbo)

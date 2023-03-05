@@ -31,6 +31,6 @@ func NewSphere(radius float64, slices, stacks int) *Mesh {
 		}
 	}
 
-	mesh := NewMesh(vertices, indices)
+	mesh := NewBasicMesh(vertices, indices)
 	return mesh
 }

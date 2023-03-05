@@ -70,7 +70,7 @@ func NewCube(size int32) *Mesh {
 	}
 
 	// Create a new mesh from the sphere data
-	mesh := NewMesh(vertices, indices)
+	mesh := NewBasicMesh(vertices, indices)
 
 	return mesh
 }
