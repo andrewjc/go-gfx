@@ -29,7 +29,9 @@ func NewCamera(window *glfw.Window, position, target, up Vec3) *Camera {
 
 // ViewMatrix returns the view matrix for the camera
 func (c *Camera) ViewMatrix() mgl32.Mat4 {
-	return mgl32.LookAtV(c.Position.ToMGl32(), c.Target.ToMGl32(), c.Up.ToMGl32())
+	// Apply rotation to camera position
+	position := c.Rotation.Inverse().Rotate(c.Position.ToMGl32())
+	return mgl32.LookAtV(position, c.Target.ToMGl32(), c.Up.ToMGl32())
 }
 
 // ProjectionMatrix returns the projection matrix for the camera

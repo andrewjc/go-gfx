@@ -32,7 +32,6 @@ func (s *ShaderProgram) GetUniformLocation(name string) int32 {
 }
 
 func (s *ShaderProgram) Use() {
-	print("Using shader program: ", s.program, " reference tracker ", s.shaderReferenceTracker)
 	gl.UseProgram(s.program)
 }
 

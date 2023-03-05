@@ -4,42 +4,33 @@ import "math"
 import . "physics/engine"
 
 func NewSphere(radius float64, slices, stacks int) *Mesh {
-	// Initialize the arrays to store the sphere data
 	var vertices []float32
 	var indices []uint32
 
-	// Generate the sphere data
 	for i := 0; i <= stacks; i++ {
-		phi := float32(i) * math.Pi / float32(stacks)
+		v := float64(i) / float64(stacks)
+		phi := v * math.Pi
 
 		for j := 0; j <= slices; j++ {
-			theta := float32(j) * 2 * math.Pi / float32(slices)
+			u := float64(j) / float64(slices)
+			theta := u * 2 * math.Pi
 
-			x := radius * math.Cos(float64(theta)) * math.Sin(float64(phi))
-			y := radius * math.Sin(float64(theta)) * math.Sin(float64(phi))
-			z := radius * math.Cos(float64(phi))
+			x := radius * math.Sin(phi) * math.Cos(theta)
+			y := radius * math.Sin(phi) * math.Sin(theta)
+			z := radius * math.Cos(phi)
 
-			u := float32(j) / float32(slices)
-			v := float32(i) / float32(stacks)
+			vertices = append(vertices, float32(x), float32(y), float32(z), float32(x), float32(y), float32(z), float32(u), float32(v))
 
-			vertices = append(vertices, float32(x), float32(y), float32(z), u, v)
+			if i < stacks && j < slices {
+				first := uint32((i * (slices + 1)) + j)
+				second := first + uint32(slices) + uint32(1)
+
+				indices = append(indices, first, second, first+1)
+				indices = append(indices, second, second+1, first+1)
+			}
 		}
 	}
 
-	// Generate the sphere indices
-	for i := 0; i < stacks; i++ {
-		for j := 0; j < slices; j++ {
-			p1 := uint32(i*(slices+1) + j)
-			p2 := uint32((i+1)*(slices+1) + j)
-			p3 := uint32((i+1)*(slices+1) + j + 1)
-			p4 := uint32(i*(slices+1) + j + 1)
-
-			indices = append(indices, p1, p2, p3, p1, p3, p4)
-		}
-	}
-
-	// Create a new mesh from the sphere data
 	mesh := NewMesh(vertices, indices)
-
 	return mesh
 }
