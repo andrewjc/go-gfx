@@ -6,7 +6,6 @@ import (
     "log"
     "math/rand"
     . "physics/engine"
-    "physics/meshes"
     "runtime"
     "time"
 )
@@ -57,27 +56,39 @@ func main() {
     )
     scene.Camera = camera
 
-    // Add the cube object to the scene
+    mesh, err := LoadObjFile("mapdata/doom_E1M1.obj")
     scene.AddObject(&GameObject{
         Position: Vec3{0.0, 0.0, 0.0},
         Rotation: QuatIdent,
         Velocity: Vec3{},
         Scale:    1.0,
         Mass:     3,
-        Mesh:     meshes.NewCube(5),
+        Mesh:     mesh,
         Material: NewBasicMaterial(),
     })
 
-    // Add the sphere object to the scene
-    scene.AddObject(&GameObject{
-        Position: Vec3{5.0, 0.0, 0.0},
-        Rotation: QuatIdent,
-        Velocity: Vec3{},
-        Scale:    1.0,
-        Mass:     3,
-        Mesh:     meshes.NewSphere(5, 32, 16),
-        Material: NewBasicMaterial(),
-    })
+    /*
+       // Add the cube object to the scene
+       scene.AddObject(&GameObject{
+           Position: Vec3{0.0, 0.0, 0.0},
+           Rotation: QuatIdent,
+           Velocity: Vec3{},
+           Scale:    1.0,
+           Mass:     3,
+           Mesh:     meshes.NewCube(5),
+           Material: NewBasicMaterial(),
+       })
+
+       // Add the sphere object to the scene
+       scene.AddObject(&GameObject{
+           Position: Vec3{5.0, 0.0, 0.0},
+           Rotation: QuatIdent,
+           Velocity: Vec3{},
+           Scale:    1.0,
+           Mass:     3,
+           Mesh:     meshes.NewSphere(5, 32, 16),
+           Material: NewBasicMaterial(),
+       })*/
 
     // Create a PBR material for the sphere
     /*sphereMaterial := pbr.NewPBRMaterial()
