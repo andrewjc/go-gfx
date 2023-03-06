@@ -146,7 +146,7 @@ func LoadObjFile(filename string) (*ComplexMesh, error) {
 	var finalTexCoordIndices []uint32
 
 	// Loop through the vertex indices
-	for i := 0; i < len(vertexIndices); i++ {
+	for i := 0; i < len(vertexIndices)-1; i++ {
 		// Get the vertex index
 		vertexIndex := vertexIndices[i]
 

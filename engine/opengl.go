@@ -47,11 +47,12 @@ func NewGLContext() (*OpenGlContext, error) {
 	mRev := window.GetAttrib(glfw.ContextVersionMinor)
 	fmt.Printf("OpenGL version: %d.%d\n", mVer, mRev)
 
+	window.MakeContextCurrent()
+
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
 
-	window.MakeContextCurrent()
 	return &OpenGlContext{window}, nil
 }
 
