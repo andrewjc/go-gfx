@@ -10,3 +10,8 @@ Features:
 * Obj file loader
 
 WIP: Physically based material system.
+
+
+Requirements:
+* GCC for compiling opengl libraries. If on windows use MingW (easiest install via choco: choco install mingw).
+* Go compiler and tools
