@@ -2,7 +2,7 @@ package meshes
 
 import . "physics/engine"
 
-func NewCube(size int32) *Mesh {
+func NewCube(size int32) Mesh {
 	halfSize := float32(size / 2.0)
 
 	vertices := []float32{

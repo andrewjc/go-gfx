@@ -6,12 +6,12 @@ import (
 
 type GameObject struct {
 	ObjectRenderer
-	Position Vec3
+	Position mgl32.Vec3
 	Rotation mgl32.Quat
-	Velocity Vec3
+	Velocity mgl32.Vec3
 	Scale    float32
-	Mass     float64
-	Charge   float64
+	Mass     float32
+	Charge   float32
 	Fields   []Force
 	Material Material
 	Mesh     Mesh
@@ -20,24 +20,24 @@ type GameObject struct {
 }
 
 func (g *GameObject) Equals(other *GameObject) bool {
-	return g.Position.Equals(other.Position) &&
+	return g.Position == (other.Position) &&
 		g.Rotation.OrientationEqual(other.Rotation) &&
-		g.Velocity.Equals(other.Velocity) &&
+		g.Velocity == (other.Velocity) &&
 		g.Mass == other.Mass &&
 		g.Charge == other.Charge
 }
 
-func (g *GameObject) Update(dt float64) {
+func (g *GameObject) Update(dt float32) {
 	// update position and velocity based on forces
 	for _, f := range g.Fields {
-		g.Velocity = g.Velocity.Add(f.GetForce(g, dt).Multiply(dt / g.Mass))
+		g.Velocity = g.Velocity.Add(f.GetForce(g, dt).Mul(dt / g.Mass))
 	}
-	g.Position = g.Position.Add(g.Velocity.Multiply(dt))
+	g.Position = g.Position.Add(g.Velocity.Mul(dt))
 }
 
 func (g *GameObject) Render(camera *Camera) {
 	// Set the model matrix based on the object's position and orientation
-	translation := mgl32.Translate3D(float32(g.Position.X), float32(g.Position.Y), float32(g.Position.Z))
+	translation := mgl32.Translate3D(g.Position.X(), g.Position.Y(), g.Position.Z())
 	rotation := g.Rotation.Mat4()
 	scale := mgl32.Scale3D(g.Scale, g.Scale, g.Scale)
 	model := translation.Mul4(rotation).Mul4(scale)
@@ -56,9 +56,9 @@ func (g *GameObject) Render(camera *Camera) {
 	projectionMatrix := camera.ProjectionMatrix(float32(width), float32(height))
 	viewMatrix := camera.ViewMatrix()
 
-	shader.SetMat4("model", &model)
-	shader.SetMat4("projection", &projectionMatrix)
-	shader.SetMat4("view", &viewMatrix)
+	shader.SetMat4UniformLocation("model", &model)
+	shader.SetMat4UniformLocation("projection", &projectionMatrix)
+	shader.SetMat4UniformLocation("view", &viewMatrix)
 
 	e := g.Material.BindShaderProperties(shader)
 	if e != nil {

@@ -3,6 +3,7 @@ package engine
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type Scene struct {
@@ -35,13 +36,28 @@ func NewScene(window *glfw.Window) (*Scene, error) {
 	gl.GenBuffers(1, &ebo)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 
-	defaultShaderProgram, err := NewShaderProgram("shaders/default.vert", "shaders/default.frag")
+	width, height := window.GetFramebufferSize()
+	gl.Viewport(0, 0, int32(width), int32(height))
+
+	shaderProgram, err := NewShaderProgram("shaders/default.vert", "shaders/default.frag")
 	if err != nil {
 		return nil, err
 	}
 
+	vertexAttribLocation := shaderProgram.GetAttribLocation("vertexPosition")
+	gl.EnableVertexAttribArray(vertexAttribLocation)
+	gl.VertexAttribPointer(vertexAttribLocation, 3, gl.FLOAT, false, 0, gl.PtrOffset(0))
+
+	texCoordAttribLocation := shaderProgram.GetAttribLocation("vertexTexCoord")
+	gl.EnableVertexAttribArray(texCoordAttribLocation)
+	gl.VertexAttribPointer(texCoordAttribLocation, 2, gl.FLOAT, false, 0, gl.PtrOffset(0))
+
+	normalAttribLocation := shaderProgram.GetAttribLocation("vertexNormal")
+	gl.EnableVertexAttribArray(normalAttribLocation)
+	gl.VertexAttribPointer(normalAttribLocation, 3, gl.FLOAT, false, 0, gl.PtrOffset(0))
+
 	scene := &Scene{
-		DefaultShaderProgram: defaultShaderProgram,
+		DefaultShaderProgram: shaderProgram,
 		Window:               window,
 		Objects:              []*GameObject{},
 		Vertices:             []float32{},
@@ -50,12 +66,7 @@ func NewScene(window *glfw.Window) (*Scene, error) {
 		Vbo:                  vbo,
 		Ebo:                  ebo,
 	}
-	/*
-	   // Set up the vertex attribute pointers
-	   positionAttribute := uint32(gl.GetAttribLocation(program, gl.Str("position\x00")))
-	   gl.EnableVertexAttribArray(positionAttribute)
-	   gl.VertexAttribPointer(positionAttribute, 3, gl.FLOAT, false, 0, nil)
-	*/
+
 	return scene, nil
 }
 
@@ -99,7 +110,7 @@ func (s *Scene) RemoveObject(obj *GameObject) {
 	}
 }
 
-func (s *Scene) Update(dt float64) {
+func (s *Scene) Update(dt float32) {
 	for _, object := range s.Objects {
 		object.Update(dt)
 	}
@@ -112,18 +123,12 @@ func (s *Scene) Render(camera *Camera) {
 	// Loop over all objects and render them
 	for _, obj := range s.Objects {
 
-		// Set the transform for the object
-		/*model := obj.Transform.ToMat4()
-		  if obj.Mesh != nil {
-		  	obj.Mesh.SetTransform(model)
-		  }*/
-
 		// Render the object
 		obj.Render(camera)
 
 	}
 }
 
-func (s *Scene) CreateCamera(position Vec3, target Vec3, up Vec3) *Camera {
+func (s *Scene) CreateCamera(position mgl32.Vec3, target mgl32.Vec3, up mgl32.Vec3) *Camera {
 	return NewCamera(s.Window, position, target, up)
 }

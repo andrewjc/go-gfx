@@ -1,56 +1,27 @@
 package engine
 
-import "github.com/go-gl/gl/v4.1-core/gl"
+import (
+	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
+)
 
 type ComplexMesh struct {
-	Vertices      []float32
-	Indices       []uint32
+	Vertices      []mgl32.Vec3
+	Indices       []uint16
 	IndicesCount  int32
-	TexCoords     []uint32
+	TexCoords     []mgl32.Vec3
 	Vao           uint32
 	Vbo           uint32
+	NormalVbo     uint32
 	Ebo           uint32
 	TextureHandle uint32
-	VertexStride  int
+	VertexStride  int32
 }
 
-func NewComplexMesh(vertices []float32, indices []uint32, texCoords []uint32, textureHandle uint32) *ComplexMesh {
+func NewComplexMesh(vertices []mgl32.Vec3, indices []uint16, normals []mgl32.Vec3, texCoords []mgl32.Vec3, textureHandle uint32) *ComplexMesh {
 	var vao, vbo, ebo uint32
 
-	// Create and bind a VAO (Vertex Array Object)
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
-	// Create and bind a VBO (Vertex Buffer Object)
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-
-	// Set the vertex data in the VBO
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
-
-	// Set up the vertex attribute pointers
-	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
-
-	gl.EnableVertexAttribArray(1)
-	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 0, nil)
-
-	gl.EnableVertexAttribArray(2)
-	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, 0, nil)
-
-	// Create and bind an EBO (Element Buffer Object)
-	gl.GenBuffers(1, &ebo)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
-
-	// Set the index data in the EBO
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*4, gl.Ptr(indices), gl.STATIC_DRAW)
-
-	// Unbind the VBO, VAO, and EBO
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-	gl.BindVertexArray(0)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
-
-	return &ComplexMesh{
+	newMesh := &ComplexMesh{
 		Vao:           vao,
 		Vbo:           vbo,
 		Ebo:           ebo,
@@ -61,6 +32,35 @@ func NewComplexMesh(vertices []float32, indices []uint32, texCoords []uint32, te
 		TextureHandle: textureHandle,
 		VertexStride:  11 * 4,
 	}
+
+	newMesh.SetVertices(vertices, indices, vao, vbo, ebo)
+	newMesh.SetNormals(normals)
+	newMesh.SetTextureCoords(texCoords, vao, vbo)
+
+	return newMesh
+}
+
+func (m *ComplexMesh) SetVertices(vertices []mgl32.Vec3, indices []uint16, vao uint32, vbo uint32, ebo uint32) {
+	// Create and bind a VAO (Vertex Array Object)
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
+	// Create and bind a VBO (Vertex Buffer Object) for the vertex positions
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
+
+	// Bind the index buffer
+	gl.GenBuffers(1, &ebo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indices)*2, gl.Ptr(indices), gl.STATIC_DRAW)
+
+	// Unbind the VBO, VAO, and EBO
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+	gl.BindVertexArray(0)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0)
 }
 
 func (m *ComplexMesh) Draw(shader *ShaderProgram) {
@@ -78,28 +78,40 @@ func (m *ComplexMesh) Draw(shader *ShaderProgram) {
 	shader.Unuse()
 }
 
-func (m *ComplexMesh) SetNormals(normals []float32, vertexNormal int32) {
-	gl.BindVertexArray(m.Vao)
-	gl.BindBuffer(gl.ARRAY_BUFFER, m.Vbo)
+func (m *ComplexMesh) SetNormals(normals []mgl32.Vec3) {
+	// Create and bind a new VBO for the normal data
+	var normalVBO uint32
+	gl.GenBuffers(1, &normalVBO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, normalVBO)
 
-	gl.BufferData(gl.ARRAY_BUFFER, len(m.Vertices)*4, gl.Ptr(m.Vertices), gl.STATIC_DRAW)
+	// Set the normal data in the VBO
+	gl.BufferData(gl.ARRAY_BUFFER, len(normals)*4, gl.Ptr(normals), gl.STATIC_DRAW)
 
-	gl.VertexAttribPointer(uint32(vertexNormal), 3, gl.FLOAT, false, int32(m.VertexStride), gl.PtrOffset(8*4))
-	gl.EnableVertexAttribArray(uint32(vertexNormal))
+	// Set up the vertex attribute pointer for the normal data
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 3*4, nil)
 
-	gl.BindVertexArray(0)
+	// Unbind the normal VBO
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 
-	copy(m.Vertices[8:], normals)
-
-	m.VertexStride = 11 * 4
+	m.NormalVbo = normalVBO
 }
 
-func (m *ComplexMesh) SetTextureCoordinates(texCoords []float32) {
-	// Call this function after creating the mesh
-	gl.BindVertexArray(m.Vao)
-	gl.BindBuffer(gl.ARRAY_BUFFER, m.Vbo)
-	var offset int = len(m.Vertices) * 4 // calculate offset for texture coordinates
-	gl.BufferSubData(gl.ARRAY_BUFFER, offset, len(texCoords)*4, gl.Ptr(texCoords))
+func (m *ComplexMesh) SetTextureCoords(texCoords []mgl32.Vec3, vao uint32, vbo uint32) {
+	gl.BindVertexArray(vao)
+
+	// Create and bind a VBO (Vertex Buffer Object) for texture coordinates
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+
+	// Set the texture coordinate data in the VBO
+	gl.BufferData(gl.ARRAY_BUFFER, len(texCoords)*12, gl.Ptr(texCoords), gl.STATIC_DRAW)
+
+	// Set up the vertex attribute pointer for texture coordinates
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 0, nil)
+
+	// Unbind the VBO and VAO
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 	gl.BindVertexArray(0)
 }

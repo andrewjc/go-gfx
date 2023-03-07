@@ -3,7 +3,7 @@ package meshes
 import "math"
 import . "physics/engine"
 
-func NewSphere(radius float64, slices, stacks int) *Mesh {
+func NewSphere(radius float64, slices, stacks int) Mesh {
 	var vertices []float32
 	var indices []uint32
 
