@@ -8,7 +8,6 @@ import (
 
 type Scene struct {
 	DefaultShaderProgram *ShaderProgram
-	Renderer             *ForwardRenderer
 	Window               *glfw.Window
 	Camera               *Camera
 	Objects              []*GameObject
@@ -37,6 +36,7 @@ func NewScene(window *glfw.Window) (*Scene, error) {
 func (s *Scene) AddObject(obj *GameObject) {
 	obj.Scene = s
 	s.Objects = append(s.Objects, obj)
+
 }
 
 func (s *Scene) RemoveObject(obj *GameObject) {
@@ -71,8 +71,4 @@ func (s *Scene) Render(camera *Camera) {
 
 func (s *Scene) CreateCamera(position mgl32.Vec3, target mgl32.Vec3, up mgl32.Vec3) *Camera {
 	return NewCamera(s.Window, position, target, up)
-}
-
-func (s *Scene) SetRenderer(renderer *ForwardRenderer) {
-	s.Renderer = renderer
 }

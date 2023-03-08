@@ -19,34 +19,33 @@ import (
 )
 
 type Vertex struct {
-	x, y, z float32
+	X, Y, Z float32
 }
 
 func (v Vertex) ToVec3() mgl32.Vec3 {
-	return mgl32.Vec3{v.x, v.y, v.z}
+	return mgl32.Vec3{v.X, v.Y, v.Z}
 }
 
 type TexCoord struct {
-	u, v float32
+	Y, V float32
 }
 
 func (v TexCoord) ToVec2() mgl32.Vec2 {
-	return mgl32.Vec2{v.u, v.v}
+	return mgl32.Vec2{v.Y, v.V}
 }
 
 type Normal struct {
-	x, y, z float32
+	X, Y, Z float32
 }
 
 func (v Normal) ToVec3() mgl32.Vec3 {
-	return mgl32.Vec3{v.x, v.y, v.z}
+	return mgl32.Vec3{v.X, v.Y, v.Z}
 }
 
 type FaceVertex struct {
-	vertexIndex   int
-	texCoordIndex int
-	normalIndex   int
-	smooth        bool
+	VertexIndex   int
+	TexCoordIndex int
+	NormalIndex   int
 }
 
 type ImportedModel struct {
@@ -123,7 +122,7 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 				Name: fields[1],
 			}
 			model.Objects = append(model.Objects, currentObject)
-		case "v":
+		case "V":
 			v, err := LdrParseVertex(line)
 			if err != nil {
 				return nil, err
@@ -146,7 +145,7 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 			for _, field := range fields[1:] {
 				f, err := LdrParseFaceVertex(field)
 				if err != nil {
-					return nil, fmt.Errorf("could not parse face Vertex: %v", err)
+					return nil, fmt.Errorf("could not parse face Vertex: %V", err)
 				}
 				currentObject.AddFaceVertex(f)
 				faceIndices = append(faceIndices, len(currentObject.FaceIndices)-1)
@@ -194,17 +193,17 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 		}
 		var totalX, totalY, totalZ float32
 		for _, vertex := range mesh.Vertices {
-			totalX += vertex.x
-			totalY += vertex.y
-			totalZ += vertex.z
+			totalX += vertex.X
+			totalY += vertex.Y
+			totalZ += vertex.Z
 		}
 		centerX := totalX / float32(len(mesh.Vertices))
 		centerY := totalY / float32(len(mesh.Vertices))
 		centerZ := totalZ / float32(len(mesh.Vertices))
 		for i := range mesh.Vertices {
-			mesh.Vertices[i].x -= centerX
-			mesh.Vertices[i].y -= centerY
-			mesh.Vertices[i].z -= centerZ
+			mesh.Vertices[i].X -= centerX
+			mesh.Vertices[i].Y -= centerY
+			mesh.Vertices[i].Z -= centerZ
 		}
 	}
 	return model, nil
@@ -234,25 +233,25 @@ func LdrParseMtlLib(path string) (map[string]material, error) {
 				case "Ka":
 					c, err := LdrParseColor(line)
 					if err != nil {
-						return nil, fmt.Errorf("could not parse ambient color for material %q: %v", curMtl.name, err)
+						return nil, fmt.Errorf("could not parse ambient color for material %q: %V", curMtl.name, err)
 					}
 					curMtl.ambient = c
 				case "Kd":
 					c, err := LdrParseColor(line)
 					if err != nil {
-						return nil, fmt.Errorf("could not parse diffuse color for material %q: %v", curMtl.name, err)
+						return nil, fmt.Errorf("could not parse diffuse color for material %q: %V", curMtl.name, err)
 					}
 					curMtl.diffuse = c
 				case "Ks":
 					c, err := LdrParseColor(line)
 					if err != nil {
-						return nil, fmt.Errorf("could not parse specular color for material %q: %v", curMtl.name, err)
+						return nil, fmt.Errorf("could not parse specular color for material %q: %V", curMtl.name, err)
 					}
 					curMtl.specular = c
 				case "Ns":
 					ns, err := strconv.ParseFloat(fields[1], 32)
 					if err != nil {
-						return nil, fmt.Errorf("could not parse specular exponent for material %q: %v", curMtl.name, err)
+						return nil, fmt.Errorf("could not parse specular exponent for material %q: %V", curMtl.name, err)
 					}
 					curMtl.shininess = float32(ns)
 				case "map_Kd":
@@ -265,7 +264,7 @@ func LdrParseMtlLib(path string) (map[string]material, error) {
 
 					texture, err := loadImage(texturePath)
 					if err != nil {
-						return nil, fmt.Errorf("could not load texture image for material %q: %v", curMtl.name, err)
+						return nil, fmt.Errorf("could not load texture image for material %q: %V", curMtl.name, err)
 					}
 					curMtl.texture = texture
 				}
@@ -287,15 +286,15 @@ func LdrParseColor(line string) (color.RGBA, error) {
 	}
 	r, err := strconv.ParseFloat(fields[0], 64)
 	if err != nil {
-		return color.RGBA{}, fmt.Errorf("could not parse color red component: %v", err)
+		return color.RGBA{}, fmt.Errorf("could not parse color red component: %V", err)
 	}
 	g, err := strconv.ParseFloat(fields[1], 64)
 	if err != nil {
-		return color.RGBA{}, fmt.Errorf("could not parse color green component: %v", err)
+		return color.RGBA{}, fmt.Errorf("could not parse color green component: %V", err)
 	}
 	b, err := strconv.ParseFloat(fields[2], 64)
 	if err != nil {
-		return color.RGBA{}, fmt.Errorf("could not parse color blue component: %v", err)
+		return color.RGBA{}, fmt.Errorf("could not parse color blue component: %V", err)
 	}
 	return color.RGBA{uint8(r * 255), uint8(g * 255), uint8(b * 255), 255}, nil
 }
@@ -355,15 +354,15 @@ func LdrParseVertex(line string) (Vertex, error) {
 	}
 	x, err := strconv.ParseFloat(fields[0], 32)
 	if err != nil {
-		return Vertex{}, fmt.Errorf("could not parse Vertex x coordinate: %v", err)
+		return Vertex{}, fmt.Errorf("could not parse Vertex X coordinate: %V", err)
 	}
 	y, err := strconv.ParseFloat(fields[1], 32)
 	if err != nil {
-		return Vertex{}, fmt.Errorf("could not parse Vertex y coordinate: %v", err)
+		return Vertex{}, fmt.Errorf("could not parse Vertex Y coordinate: %V", err)
 	}
 	z, err := strconv.ParseFloat(fields[2], 32)
 	if err != nil {
-		return Vertex{}, fmt.Errorf("could not parse Vertex z coordinate: %v", err)
+		return Vertex{}, fmt.Errorf("could not parse Vertex Z coordinate: %V", err)
 	}
 	return Vertex{float32(x), float32(y), float32(z)}, nil
 }
@@ -375,11 +374,11 @@ func LdrParseTexCoord(line string) (TexCoord, error) {
 	}
 	u, err := strconv.ParseFloat(fields[0], 32)
 	if err != nil {
-		return TexCoord{}, fmt.Errorf("could not parse texture coordinate u value: %v", err)
+		return TexCoord{}, fmt.Errorf("could not parse texture coordinate Y value: %V", err)
 	}
 	v, err := strconv.ParseFloat(fields[1], 32)
 	if err != nil {
-		return TexCoord{}, fmt.Errorf("could not parse texture coordinate v value: %v", err)
+		return TexCoord{}, fmt.Errorf("could not parse texture coordinate V value: %V", err)
 	}
 	return TexCoord{float32(u), float32(v)}, nil
 }
@@ -391,15 +390,15 @@ func LdrParseNormal(line string) (Normal, error) {
 	}
 	x, err := strconv.ParseFloat(fields[0], 32)
 	if err != nil {
-		return Normal{}, fmt.Errorf("could not parse Normal x component: %v", err)
+		return Normal{}, fmt.Errorf("could not parse Normal X component: %V", err)
 	}
 	y, err := strconv.ParseFloat(fields[1], 32)
 	if err != nil {
-		return Normal{}, fmt.Errorf("could not parse Normal y component: %v", err)
+		return Normal{}, fmt.Errorf("could not parse Normal Y component: %V", err)
 	}
 	z, err := strconv.ParseFloat(fields[2], 32)
 	if err != nil {
-		return Normal{}, fmt.Errorf("could not parse Normal z component: %v", err)
+		return Normal{}, fmt.Errorf("could not parse Normal Z component: %V", err)
 	}
 	return Normal{float32(x), float32(y), float32(z)}, nil
 }
@@ -415,41 +414,41 @@ func LdrParseFaceVertex(field string) (FaceVertex, error) {
 		if err != nil {
 			return faceVertex, err
 		}
-		faceVertex.vertexIndex = vertexIndex - 1
+		faceVertex.VertexIndex = vertexIndex - 1
 	case 2:
 		// Vertex index / texture coordinate index
 		vertexIndex, err := strconv.Atoi(indices[0])
 		if err != nil {
 			return faceVertex, err
 		}
-		faceVertex.vertexIndex = vertexIndex - 1
+		faceVertex.VertexIndex = vertexIndex - 1
 
 		texCoordIndex, err := strconv.Atoi(indices[1])
 		if err != nil {
 			return faceVertex, err
 		}
-		faceVertex.texCoordIndex = texCoordIndex - 1
+		faceVertex.TexCoordIndex = texCoordIndex - 1
 	case 3:
 		// Vertex index / texture coordinate index / Normal index
 		vertexIndex, err := strconv.Atoi(indices[0])
 		if err != nil {
 			return faceVertex, err
 		}
-		faceVertex.vertexIndex = vertexIndex - 1
+		faceVertex.VertexIndex = vertexIndex - 1
 
 		if len(indices[1]) > 0 {
 			texCoordIndex, err := strconv.Atoi(indices[1])
 			if err != nil {
 				return faceVertex, err
 			}
-			faceVertex.texCoordIndex = texCoordIndex - 1
+			faceVertex.TexCoordIndex = texCoordIndex - 1
 		}
 
 		normalIndex, err := strconv.Atoi(indices[2])
 		if err != nil {
 			return faceVertex, err
 		}
-		faceVertex.normalIndex = normalIndex - 1
+		faceVertex.NormalIndex = normalIndex - 1
 	default:
 		return faceVertex, fmt.Errorf("invalid number of indices for face Vertex: %s", field)
 	}
