@@ -154,23 +154,23 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 		case "s":
 			continue
 			/*if len(fields) > 1 && fields[1] == "1" {
-				smooth = true
-			} else {
-				smooth = false
-			}*/
+			  	smooth = true
+			  } else {
+			  	smooth = false
+			  }*/
 		/*case "usemtl":
-		materialName, err := LdrParseusemtl(line)
-		if err != nil {
-			return nil, err
-		}
-		currentObject.MaterialName = materialName
+		  materialName, err := LdrParseusemtl(line)
+		  if err != nil {
+		  	return nil, err
+		  }
+		  currentObject.MaterialName = materialName
 
-		// Add face material
-		faceIndices := make([]int, 0)
-		for i := 0; i < len(currentObject.FaceIndices); i++ {
-			faceIndices = append(faceIndices, i)
-		}
-		currentObject.AddFaceMaterial(materialName, faceIndices)*/
+		  // Add face material
+		  faceIndices := make([]int, 0)
+		  for i := 0; i < len(currentObject.FaceIndices); i++ {
+		  	faceIndices = append(faceIndices, i)
+		  }
+		  currentObject.AddFaceMaterial(materialName, faceIndices)*/
 		case "mtllib":
 			if len(fields) < 2 {
 				return nil, errors.New("malformed obj file, missing material library name")
@@ -185,6 +185,27 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
+	}
+
+	// Center the model
+	for _, mesh := range model.Objects {
+		if mesh == nil {
+			continue
+		}
+		var totalX, totalY, totalZ float32
+		for _, vertex := range mesh.Vertices {
+			totalX += vertex.x
+			totalY += vertex.y
+			totalZ += vertex.z
+		}
+		centerX := totalX / float32(len(mesh.Vertices))
+		centerY := totalY / float32(len(mesh.Vertices))
+		centerZ := totalZ / float32(len(mesh.Vertices))
+		for i := range mesh.Vertices {
+			mesh.Vertices[i].x -= centerX
+			mesh.Vertices[i].y -= centerY
+			mesh.Vertices[i].z -= centerZ
+		}
 	}
 	return model, nil
 }

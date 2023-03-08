@@ -13,10 +13,8 @@ type GameObject struct {
 	Charge   float32
 	Fields   []Force
 	Material Material
-	Mesh     *Mesh
+	Mesh     *ComplexMesh
 	Scene    *Scene
-
-	Renderer ObjectRenderer
 }
 
 func (g *GameObject) Equals(other *GameObject) bool {
@@ -38,8 +36,9 @@ func (g *GameObject) Update(dt float32) {
 func (g *GameObject) Render(projMatrix mgl32.Mat4, viewMatrix mgl32.Mat4) {
 	modelMatrix := g.getModelMatrix()
 
-	g.Renderer.Render(g.Mesh, g.Material, modelMatrix, projMatrix, viewMatrix)
+	renderer := *g.Scene.Renderer
 
+	renderer.Render(g.Mesh, g.Material, modelMatrix, projMatrix, viewMatrix)
 }
 
 func (g *GameObject) getModelMatrix() mgl32.Mat4 {

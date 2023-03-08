@@ -32,6 +32,18 @@ func main() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
 
+	// Enable backface culling
+	gl.Enable(gl.CULL_FACE)
+	gl.CullFace(gl.BACK)
+	gl.FrontFace(gl.CCW)
+
+	// Enable blending
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+	// Enable multisampling
+	gl.Enable(gl.MULTISAMPLE)
+
 	scene, err := NewScene(window)
 	if err != nil {
 		print("Failed creating scene")
@@ -45,6 +57,9 @@ func main() {
 	)
 	scene.Camera = camera
 
+	renderer := NewForwardRenderer(window, camera)
+	scene.SetRenderer(&renderer)
+
 	objFileMeshes, err := LdrParseObj("mapdata/doom_E1M1.obj")
 	if err != nil {
 		print("Failed loading obj file")
@@ -56,6 +71,9 @@ func main() {
 	}
 
 	for _, mesh := range objFileMeshes.Objects {
+		if mesh == nil {
+			continue
+		}
 		basicMesh := NewComplexMesh(mesh.Vertices, mesh.TexCoords, mesh.Normals, mesh.FaceIndices)
 		scene.AddObject(&GameObject{
 			Position: mgl32.Vec3{0.0, 0.0, 10.0},
@@ -67,8 +85,6 @@ func main() {
 			Material: NewBasicMaterial(),
 		})
 	}
-
-	//CenterCameraOnModel(objFileMeshes[0].Positions, camera)
 
 	/*scene.AddObject(&GameObject{
 		Position: mgl32.Vec3{0.0, 0.0, 0.0},
