@@ -18,36 +18,48 @@ import (
 	"strings"
 )
 
-type vertex struct {
+type Vertex struct {
 	x, y, z float32
 }
 
-type texCoord struct {
+func (v Vertex) ToVec3() mgl32.Vec3 {
+	return mgl32.Vec3{v.x, v.y, v.z}
+}
+
+type TexCoord struct {
 	u, v float32
 }
 
-type normal struct {
+func (v TexCoord) ToVec2() mgl32.Vec2 {
+	return mgl32.Vec2{v.u, v.v}
+}
+
+type Normal struct {
 	x, y, z float32
 }
 
-type faceVertex struct {
+func (v Normal) ToVec3() mgl32.Vec3 {
+	return mgl32.Vec3{v.x, v.y, v.z}
+}
+
+type FaceVertex struct {
 	vertexIndex   int
 	texCoordIndex int
 	normalIndex   int
 	smooth        bool
 }
 
-type objModel struct {
-	Objects         []*objObject
+type ImportedModel struct {
+	Objects         []*ImportedMeshObj
 	materialLibrary map[string]material
 }
 
-type objObject struct {
+type ImportedMeshObj struct {
 	Name        string
-	Vertices    []vertex
-	TexCoords   []texCoord
-	Normals     []normal
-	FaceIndices []faceVertex
+	Vertices    []Vertex
+	TexCoords   []TexCoord
+	Normals     []Normal
+	FaceIndices []FaceVertex
 }
 
 type material struct {
@@ -60,23 +72,23 @@ type material struct {
 	texture   uint32
 }
 
-func (o *objObject) AddVertex(v vertex) {
+func (o *ImportedMeshObj) AddVertex(v Vertex) {
 	o.Vertices = append(o.Vertices, v)
 }
 
-func (o *objObject) AddTexCoord(t texCoord) {
+func (o *ImportedMeshObj) AddTexCoord(t TexCoord) {
 	o.TexCoords = append(o.TexCoords, t)
 }
 
-func (o *objObject) AddNormal(n normal) {
+func (o *ImportedMeshObj) AddNormal(n Normal) {
 	o.Normals = append(o.Normals, n)
 }
 
-func (o *objObject) AddFaceVertex(v faceVertex) {
+func (o *ImportedMeshObj) AddFaceVertex(v FaceVertex) {
 	o.FaceIndices = append(o.FaceIndices, v)
 }
 
-func LdrParseObj(filePath string) (*objModel, error) {
+func LdrParseObj(filePath string) (*ImportedModel, error) {
 
 	fileContents, err := os.ReadFile(filePath)
 	if err != nil {
@@ -86,10 +98,10 @@ func LdrParseObj(filePath string) (*objModel, error) {
 	folderRootPathSplit := strings.Split(strings.ReplaceAll(filePath, "\\", "/"), "/")
 	folderRootPath := folderRootPathSplit[:len(folderRootPathSplit)-1][0]
 
-	model := &objModel{
-		Objects: make([]*objObject, 0),
+	model := &ImportedModel{
+		Objects: make([]*ImportedMeshObj, 0),
 	}
-	var currentObject *objObject
+	var currentObject *ImportedMeshObj
 	model.Objects = append(model.Objects, currentObject)
 
 	scanner := bufio.NewScanner(bytes.NewReader(fileContents))
@@ -107,7 +119,7 @@ func LdrParseObj(filePath string) (*objModel, error) {
 			if len(fields) < 2 {
 				return nil, errors.New("malformed obj file, missing object name")
 			}
-			currentObject = &objObject{
+			currentObject = &ImportedMeshObj{
 				Name: fields[1],
 			}
 			model.Objects = append(model.Objects, currentObject)
@@ -134,7 +146,7 @@ func LdrParseObj(filePath string) (*objModel, error) {
 			for _, field := range fields[1:] {
 				f, err := LdrParseFaceVertex(field)
 				if err != nil {
-					return nil, fmt.Errorf("could not parse face vertex: %v", err)
+					return nil, fmt.Errorf("could not parse face Vertex: %v", err)
 				}
 				currentObject.AddFaceVertex(f)
 				faceIndices = append(faceIndices, len(currentObject.FaceIndices)-1)
@@ -315,76 +327,76 @@ func LdrParseusemtl(line string) (string, error) {
 	return fields[0], nil
 }
 
-func LdrParseVertex(line string) (vertex, error) {
+func LdrParseVertex(line string) (Vertex, error) {
 	fields := strings.Fields(line)[1:]
 	if len(fields) != 3 {
-		return vertex{}, fmt.Errorf("expected 3 fields in vertex, found %d", len(fields))
+		return Vertex{}, fmt.Errorf("expected 3 fields in Vertex, found %d", len(fields))
 	}
 	x, err := strconv.ParseFloat(fields[0], 32)
 	if err != nil {
-		return vertex{}, fmt.Errorf("could not parse vertex x coordinate: %v", err)
+		return Vertex{}, fmt.Errorf("could not parse Vertex x coordinate: %v", err)
 	}
 	y, err := strconv.ParseFloat(fields[1], 32)
 	if err != nil {
-		return vertex{}, fmt.Errorf("could not parse vertex y coordinate: %v", err)
+		return Vertex{}, fmt.Errorf("could not parse Vertex y coordinate: %v", err)
 	}
 	z, err := strconv.ParseFloat(fields[2], 32)
 	if err != nil {
-		return vertex{}, fmt.Errorf("could not parse vertex z coordinate: %v", err)
+		return Vertex{}, fmt.Errorf("could not parse Vertex z coordinate: %v", err)
 	}
-	return vertex{float32(x), float32(y), float32(z)}, nil
+	return Vertex{float32(x), float32(y), float32(z)}, nil
 }
 
-func LdrParseTexCoord(line string) (texCoord, error) {
+func LdrParseTexCoord(line string) (TexCoord, error) {
 	fields := strings.Fields(line)[1:]
 	if len(fields) != 2 {
-		return texCoord{}, fmt.Errorf("expected 2 fields in texture coordinate, found %d", len(fields))
+		return TexCoord{}, fmt.Errorf("expected 2 fields in texture coordinate, found %d", len(fields))
 	}
 	u, err := strconv.ParseFloat(fields[0], 32)
 	if err != nil {
-		return texCoord{}, fmt.Errorf("could not parse texture coordinate u value: %v", err)
+		return TexCoord{}, fmt.Errorf("could not parse texture coordinate u value: %v", err)
 	}
 	v, err := strconv.ParseFloat(fields[1], 32)
 	if err != nil {
-		return texCoord{}, fmt.Errorf("could not parse texture coordinate v value: %v", err)
+		return TexCoord{}, fmt.Errorf("could not parse texture coordinate v value: %v", err)
 	}
-	return texCoord{float32(u), float32(v)}, nil
+	return TexCoord{float32(u), float32(v)}, nil
 }
 
-func LdrParseNormal(line string) (normal, error) {
+func LdrParseNormal(line string) (Normal, error) {
 	fields := strings.Fields(line)[1:]
 	if len(fields) != 3 {
-		return normal{}, fmt.Errorf("expected 3 fields in normal, found %d", len(fields))
+		return Normal{}, fmt.Errorf("expected 3 fields in Normal, found %d", len(fields))
 	}
 	x, err := strconv.ParseFloat(fields[0], 32)
 	if err != nil {
-		return normal{}, fmt.Errorf("could not parse normal x component: %v", err)
+		return Normal{}, fmt.Errorf("could not parse Normal x component: %v", err)
 	}
 	y, err := strconv.ParseFloat(fields[1], 32)
 	if err != nil {
-		return normal{}, fmt.Errorf("could not parse normal y component: %v", err)
+		return Normal{}, fmt.Errorf("could not parse Normal y component: %v", err)
 	}
 	z, err := strconv.ParseFloat(fields[2], 32)
 	if err != nil {
-		return normal{}, fmt.Errorf("could not parse normal z component: %v", err)
+		return Normal{}, fmt.Errorf("could not parse Normal z component: %v", err)
 	}
-	return normal{float32(x), float32(y), float32(z)}, nil
+	return Normal{float32(x), float32(y), float32(z)}, nil
 }
 
-func LdrParseFaceVertex(field string) (faceVertex, error) {
-	faceVertex := faceVertex{}
+func LdrParseFaceVertex(field string) (FaceVertex, error) {
+	faceVertex := FaceVertex{}
 
 	indices := strings.Split(field, "/")
 	switch len(indices) {
 	case 1:
-		// vertex index
+		// Vertex index
 		vertexIndex, err := strconv.Atoi(indices[0])
 		if err != nil {
 			return faceVertex, err
 		}
 		faceVertex.vertexIndex = vertexIndex - 1
 	case 2:
-		// vertex index / texture coordinate index
+		// Vertex index / texture coordinate index
 		vertexIndex, err := strconv.Atoi(indices[0])
 		if err != nil {
 			return faceVertex, err
@@ -397,7 +409,7 @@ func LdrParseFaceVertex(field string) (faceVertex, error) {
 		}
 		faceVertex.texCoordIndex = texCoordIndex - 1
 	case 3:
-		// vertex index / texture coordinate index / normal index
+		// Vertex index / texture coordinate index / Normal index
 		vertexIndex, err := strconv.Atoi(indices[0])
 		if err != nil {
 			return faceVertex, err
@@ -418,7 +430,7 @@ func LdrParseFaceVertex(field string) (faceVertex, error) {
 		}
 		faceVertex.normalIndex = normalIndex - 1
 	default:
-		return faceVertex, fmt.Errorf("invalid number of indices for face vertex: %s", field)
+		return faceVertex, fmt.Errorf("invalid number of indices for face Vertex: %s", field)
 	}
 
 	return faceVertex, nil

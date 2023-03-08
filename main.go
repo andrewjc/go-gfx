@@ -56,8 +56,7 @@ func main() {
 	}
 
 	for _, mesh := range objFileMeshes.Objects {
-		// Make a new basicmesh for this mesh
-		basicMesh := NewComplexMesh(mesh.Vertices, mesh.FaceIndices, mesh.Normals, mesh.TexCoords, 0)
+		basicMesh := NewComplexMesh(mesh.Vertices, mesh.TexCoords, mesh.Normals, mesh.FaceIndices)
 		scene.AddObject(&GameObject{
 			Position: mgl32.Vec3{0.0, 0.0, 10.0},
 			Rotation: QuatIdent,

@@ -1,3 +1,22 @@
+Implement a forward renderer based on the rules below.
+
+Rules to follow in your design:
+
+1. Use the following interface for the ObjectRender:
+type ObjectRenderer interface {
+	Render(mesh *Mesh, material Material, model mgl32.Mat4, proj mgl32.Mat4, view mgl32.Mat4)
+}
+
+2. Reference the shader on the material:
+type Material interface {
+	GetShader() *ShaderProgram
+	GetAttributeMap() map[string]string
+	BindShaderProperties(shader *ShaderProgram) error
+}
+Shaders belong to the Material struct that is set on the GameObject.
+
+Here is the implementation of ShaderProgram for your reference:
+
 package engine
 
 import (

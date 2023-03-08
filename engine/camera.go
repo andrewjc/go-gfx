@@ -10,23 +10,31 @@ var QuatIdent = mgl32.QuatIdent()
 
 type Camera struct {
 	*GameObject
-	Window *glfw.Window
-	Target mgl32.Vec3
-	Up     mgl32.Vec3
-	Left   mgl32.Vec3
+	Window      *glfw.Window
+	Target      mgl32.Vec3
+	Up          mgl32.Vec3
+	Left        mgl32.Vec3
+	AspectRatio float32
+	FovY        float32
 }
 
 // NewCamera creates a new camera object with the given position, target, up vector and Field of view
 func NewCamera(window *glfw.Window, position, target, up mgl32.Vec3) *Camera {
+
+	width, height := window.GetFramebufferSize()
+	aspectRatio := float32(width) / float32(height)
+
 	return &Camera{
 		Window: window,
 		GameObject: &GameObject{
 			Position: position,
 			Rotation: QuatIdent,
 		},
-		Target: target,
-		Up:     up,
-		Left:   up.Cross(target.Sub(position)).Normalize(),
+		Target:      target,
+		Up:          up,
+		Left:        up.Cross(target.Sub(position)).Normalize(),
+		AspectRatio: aspectRatio,
+		FovY:        45.0,
 	}
 }
 
@@ -38,8 +46,8 @@ func (c *Camera) ViewMatrix() mgl32.Mat4 {
 }
 
 // ProjectionMatrix returns the projection matrix for the camera
-func (c *Camera) ProjectionMatrix(width, height float32) mgl32.Mat4 {
-	return mgl32.Perspective(mgl32.DegToRad(45), width/height, 0.1, 100.0)
+func (c *Camera) ProjectionMatrix() mgl32.Mat4 {
+	return mgl32.Perspective(mgl32.DegToRad(c.FovY), c.AspectRatio, 0.1, 100.0)
 }
 
 // Update updates the camera's position and target based on the given input

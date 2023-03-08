@@ -5,7 +5,6 @@ import (
 )
 
 type GameObject struct {
-	ObjectRenderer
 	Position mgl32.Vec3
 	Rotation mgl32.Quat
 	Velocity mgl32.Vec3
@@ -14,9 +13,10 @@ type GameObject struct {
 	Charge   float32
 	Fields   []Force
 	Material Material
-	Mesh     Mesh
+	Mesh     *Mesh
+	Scene    *Scene
 
-	Scene *Scene
+	Renderer ObjectRenderer
 }
 
 func (g *GameObject) Equals(other *GameObject) bool {
@@ -35,38 +35,16 @@ func (g *GameObject) Update(dt float32) {
 	g.Position = g.Position.Add(g.Velocity.Mul(dt))
 }
 
-func (g *GameObject) Render(camera *Camera) {
-	// Set the model matrix based on the object's position and orientation
-	translation := mgl32.Translate3D(g.Position.X(), g.Position.Y(), g.Position.Z())
-	rotation := g.Rotation.Mat4()
-	scale := mgl32.Scale3D(g.Scale, g.Scale, g.Scale)
-	model := translation.Mul4(rotation).Mul4(scale)
+func (g *GameObject) Render(projMatrix mgl32.Mat4, viewMatrix mgl32.Mat4) {
+	modelMatrix := g.getModelMatrix()
 
-	width, height := camera.Window.GetFramebufferSize()
+	g.Renderer.Render(g.Mesh, g.Material, modelMatrix, projMatrix, viewMatrix)
 
-	var shader *ShaderProgram = nil
-	if g.Material != nil && g.Material.GetShader() != nil {
-		shader = g.Material.GetShader()
-	} else {
-		shader = g.Scene.DefaultShaderProgram
-	}
+}
 
-	shader.Use()
-
-	projectionMatrix := camera.ProjectionMatrix(float32(width), float32(height))
-	viewMatrix := camera.ViewMatrix()
-
-	shader.SetMat4UniformLocation("model", &model)
-	shader.SetMat4UniformLocation("projection", &projectionMatrix)
-	shader.SetMat4UniformLocation("view", &viewMatrix)
-
-	e := g.Material.BindShaderProperties(shader)
-	if e != nil {
-		panic(e)
-	}
-
-	// Draw the mesh
-	g.Mesh.Draw(shader)
-
-	shader.Unuse()
+func (g *GameObject) getModelMatrix() mgl32.Mat4 {
+	modelMatrix := mgl32.Translate3D(g.Position.X(), g.Position.Y(), g.Position.Z())
+	modelMatrix = modelMatrix.Mul4(mgl32.Scale3D(g.Scale, g.Scale, g.Scale))
+	modelMatrix = modelMatrix.Mul4(g.Rotation.Mat4())
+	return modelMatrix
 }

@@ -2,10 +2,6 @@ package engine
 
 import "github.com/go-gl/gl/v4.1-core/gl"
 
-type Mesh interface {
-	Draw(shader *ShaderProgram)
-}
-
 type BasicMesh struct {
 	Vertices     []float32
 	Indices      []uint32
