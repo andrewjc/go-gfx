@@ -36,6 +36,7 @@ func NewScene(window *glfw.Window) (*Scene, error) {
 func (s *Scene) AddObject(obj *GameObject) {
 	obj.Scene = s
 	s.Objects = append(s.Objects, obj)
+
 }
 
 func (s *Scene) RemoveObject(obj *GameObject) {

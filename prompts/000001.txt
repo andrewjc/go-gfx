@@ -1,31 +1,57 @@
-Implement a forward renderer based on the rules below.
+Find the bugs in my opengl program that are causing it to render completely black, and not showing my cube model:
 
-Rules to follow in your design:
+Here's the main method:
 
-1. Use the following interface for the ObjectRender:
-type ObjectRenderer interface {
-	Render(mesh *Mesh, material Material, model mgl32.Mat4, proj mgl32.Mat4, view mgl32.Mat4)
-}
+	// Enable depth testing
+	gl.Enable(gl.DEPTH_TEST)
+	gl.DepthFunc(gl.LESS)
 
-2. Reference the shader on the material:
-type Material interface {
-	GetShader() *ShaderProgram
-	GetAttributeMap() map[string]string
-	BindShaderProperties(shader *ShaderProgram) error
-}
-Shaders belong to the Material struct that is set on the GameObject.
+	// Enable backface culling
+	gl.Enable(gl.CULL_FACE)
+	gl.CullFace(gl.BACK)
+	gl.FrontFace(gl.CCW)
 
-Here is the implementation of ShaderProgram for your reference:
+	// Enable blending
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-package engine
+	// Enable multisampling
+	gl.Enable(gl.MULTISAMPLE)
 
-import (
-	"fmt"
-	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
-	"log"
-	"unsafe"
-)
+	scene, err := NewScene(window)
+
+	camera := scene.CreateCamera(
+		mgl32.Vec3{0, 0, -15},
+		mgl32.Vec3{0, 0, 15},
+		mgl32.Vec3{0, 1, 0},
+	)
+	scene.Camera = camera
+
+	renderer := NewForwardRenderer(window, camera)
+	scene.SetRenderer(&renderer)
+
+	scene.AddObject(&GameObject{
+		Position: mgl32.Vec3{0.0, 0.0, 15.0},
+		Rotation: QuatIdent,
+		Velocity: mgl32.Vec3{},
+		Scale:    1.0,
+		Mass:     3,
+		Mesh:     meshes.NewCube(5),
+		Material: NewBasicMaterial(),
+	})
+
+	// Initialize the last frame time
+	var lastFrameTime float64 = 0.0
+	for !window.ShouldClose() {
+
+		// Render the objects in the scene
+		scene.Render(camera)
+
+		// Swap buffers
+		window.SwapBuffers()
+	}
+
+Here's the shader setup code:
 
 type ShaderProgram struct {
 	program                uint32
@@ -70,14 +96,6 @@ func (s *ShaderProgram) GetAttribLocation(name string) uint32 {
 		s.AttribLocationCache[name] = uint32(loc)
 	}
 	return uint32(loc)
-}
-
-func (s *ShaderProgram) Use() {
-	gl.UseProgram(s.program)
-}
-
-func (s *ShaderProgram) Unuse() {
-	gl.UseProgram(0)
 }
 
 func (s *ShaderProgram) SetFloat32UniformLocation(key string, value *float32) {
@@ -132,9 +150,7 @@ func (s *ShaderProgram) SetIntAttribLocation(key string, value int32) {
 
 func LoadShader(vertShader string, fragShader string) *ShaderProgram {
 	shaderProgram, err := NewShaderProgram(vertShader, fragShader)
-	if err != nil {
-		panic(err)
-	}
+
 	return shaderProgram
 }
 
@@ -167,14 +183,8 @@ func NewShaderProgram(vertexShaderPath, fragmentShaderPath string) (*ShaderProgr
 	GLContext().check()
 
 	vertexShaderSource, err := LoadFile(vertexShaderPath)
-	if err != nil {
-		return nil, err
-	}
 
 	fragmentShaderSource, err := LoadFile(fragmentShaderPath)
-	if err != nil {
-		return nil, err
-	}
 
 	// Compile the Vertex shader
 	vertexShader := gl.CreateShader(gl.VERTEX_SHADER)
@@ -204,3 +214,368 @@ func NewShaderProgram(vertexShaderPath, fragmentShaderPath string) (*ShaderProgr
 
 	return &ShaderProgram{program: program, UniformLocationCache: map[string]uint32{}, AttribLocationCache: map[string]uint32{}}, nil
 }
+
+The scene looks like this:
+
+type Scene struct {
+	DefaultShaderProgram *ShaderProgram
+	Renderer             *ForwardRenderer
+	Window               *glfw.Window
+	Camera               *Camera
+	Objects              []*GameObject
+	Lights               []*Light
+}
+
+func NewScene(window *glfw.Window) (*Scene, error) {
+
+	width, height := window.GetFramebufferSize()
+	gl.Viewport(0, 0, int32(width), int32(height))
+
+	shaderProgram, err := NewShaderProgram("shaders/default.vert", "shaders/default.frag")
+
+	scene := &Scene{
+		DefaultShaderProgram: shaderProgram,
+		Window:               window,
+		Objects:              []*GameObject{},
+	}
+
+	return scene, nil
+}
+
+func (s *Scene) AddObject(obj *GameObject) {
+	obj.Scene = s
+	s.Objects = append(s.Objects, obj)
+}
+
+func (s *Scene) RemoveObject(obj *GameObject) {
+	for i, o := range s.Objects {
+		if o.Equals(obj) {
+			obj.Scene = nil
+			s.Objects = append(s.Objects[:i], s.Objects[i+1:]...)
+			break
+		}
+	}
+}
+
+func (s *Scene) Update(dt float32) {
+	for _, object := range s.Objects {
+		object.Update(dt)
+	}
+}
+
+func (s *Scene) Render(camera *Camera) {
+	// Clear the screen
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+	proj := camera.ProjectionMatrix()
+	view := camera.ViewMatrix()
+
+	// Loop over all objects and render them
+	for _, obj := range s.Objects {
+		// Render the object
+		obj.Render(proj, view)
+	}
+}
+
+
+Camera looks like this:
+
+type Camera struct {
+	*GameObject
+	Window      *glfw.Window
+	Target      mgl32.Vec3
+	Up          mgl32.Vec3
+	Left        mgl32.Vec3
+	AspectRatio float32
+	FovY        float32
+}
+
+// NewCamera creates a new camera object with the given position, target, up vector and Field of view
+func NewCamera(window *glfw.Window, position, target, up mgl32.Vec3) *Camera {
+
+	width, height := window.GetFramebufferSize()
+	aspectRatio := float32(width) / float32(height)
+
+	return &Camera{
+		Window: window,
+		GameObject: &GameObject{
+			Position: position,
+			Rotation: QuatIdent,
+		},
+		Target:      target,
+		Up:          up,
+		Left:        up.Cross(target.Sub(position)).Normalize(),
+		AspectRatio: aspectRatio,
+		FovY:        45.0,
+	}
+}
+
+// ViewMatrix returns the view matrix for the camera
+func (c *Camera) ViewMatrix() mgl32.Mat4 {
+	// Apply rotation to camera position
+	position := c.Rotation.Inverse().Rotate(c.Position)
+	return mgl32.LookAtV(position, c.Target, c.Up)
+}
+
+// ProjectionMatrix returns the projection matrix for the camera
+func (c *Camera) ProjectionMatrix() mgl32.Mat4 {
+	return mgl32.Perspective(mgl32.DegToRad(c.FovY), c.AspectRatio, 0.1, 100.0)
+}
+
+
+
+I Make a cube like this:
+
+
+func NewCube(size int32) *ComplexMesh {
+
+	// Calculate half of the size to simplify vertex calculations
+	halfSize := float32(size / 2.0)
+
+	// Define the vertices of the cube
+	vertices := []Vertex{
+		{-halfSize, -halfSize, halfSize},
+		{halfSize, -halfSize, halfSize},
+		{halfSize, halfSize, halfSize},
+		{-halfSize, halfSize, halfSize},
+		{-halfSize, -halfSize, -halfSize},
+		{halfSize, -halfSize, -halfSize},
+		{halfSize, halfSize, -halfSize},
+		{-halfSize, halfSize, -halfSize},
+	}
+
+	// Define the texture coordinates of the cube (not used in this case)
+	texCoords := []TexCoord{
+		{0, 0},
+		{1, 0},
+		{1, 1},
+		{0, 1},
+	}
+
+	// Define the normals of the cube (uniformly facing outwards)
+	normals := []Normal{
+		{0, 0, 1},
+		{1, 0, 0},
+		{0, 0, -1},
+		{-1, 0, 0},
+		{0, 1, 0},
+		{0, -1, 0},
+	}
+
+	// Define the indices of the cube, referencing the vertices, texCoords and normals positions in the other arrays
+	indices := []FaceVertex{
+		{0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {2, 0, 0}, {3, 0, 0}, {0, 0, 0},
+		{1, 0, 1}, {5, 0, 1}, {6, 0, 1}, {6, 0, 1}, {2, 0, 1}, {1, 0, 1},
+		{7, 0, 2}, {6, 0, 2}, {5, 0, 2}, {5, 0, 2}, {4, 0, 2}, {7, 0, 2},
+		{4, 0, 3}, {0, 0, 3}, {3, 0, 3}, {3, 0, 3}, {7, 0, 3}, {4, 0, 3},
+		{4, 0, 4}, {5, 0, 4}, {1, 0, 4}, {1, 0, 4}, {0, 0, 4}, {4, 0, 4},
+		{3, 0, 5}, {2, 0, 5}, {6, 0, 5}, {6, 0, 5}, {7, 0, 5}, {3, 0, 5},
+	}
+
+	// Create a new ComplexMesh object
+	mesh := NewComplexMesh(vertices, texCoords, normals, indices)
+
+	return mesh
+
+}
+
+Complex Mesh has this struct:
+type ComplexMesh struct {
+	Vao, Vbo, Ebo uint32
+	VertexCount   int32
+}
+
+NewComplexMesh looks like this:
+
+func NewComplexMesh(vertices []Vertex, texCoords []TexCoord, normals []Normal, indices []FaceVertex) *ComplexMesh {
+	var vao, vbo, ebo uint32
+	var vertexCount int32
+
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+
+	// Interleave vertex data
+	var interleavedData []float32
+	for _, face := range indices {
+		vertex := vertices[face.VertexIndex]
+		texCoord := texCoords[face.TexCoordIndex]
+		normal := normals[face.NormalIndex]
+
+		interleavedData = append(interleavedData, vertex.X, vertex.Y, vertex.Z)
+		interleavedData = append(interleavedData, texCoord.Y, texCoord.V)
+		interleavedData = append(interleavedData, normal.X, normal.Y, normal.Z)
+	}
+
+	gl.BufferData(gl.ARRAY_BUFFER, len(interleavedData)*4, gl.Ptr(interleavedData), gl.STATIC_DRAW)
+
+	gl.GenBuffers(1, &ebo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
+
+	var indicesData []uint32
+	for _, face := range indices {
+		indicesData = append(indicesData, uint32(face.VertexIndex))
+	}
+
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, len(indicesData)*4, gl.Ptr(indicesData), gl.STATIC_DRAW)
+
+	// Position attribute
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 8*4, gl.PtrOffset(0))
+
+	// TexCoord attribute
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 8*4, gl.PtrOffset(3*4))
+
+	// Normal attribute
+	gl.EnableVertexAttribArray(2)
+	gl.VertexAttribPointer(2, 3, gl.FLOAT, false, 8*4, gl.PtrOffset(5*4))
+
+	gl.BindVertexArray(0)
+
+	vertexCount = int32(len(indices))
+
+	return &ComplexMesh{
+		Vao:         vao,
+		Vbo:         vbo,
+		Ebo:         ebo,
+		VertexCount: vertexCount,
+	}
+}
+
+Rendering starts with the scene:
+
+func (s *Scene) Render(camera *Camera) {
+	// Clear the screen
+	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+	proj := camera.ProjectionMatrix()
+	view := camera.ViewMatrix()
+
+	// Loop over all objects and render them
+	for _, obj := range s.Objects {
+		// Render the object
+		obj.Render(proj, view)
+	}
+}
+
+GameObject looks like this:
+type GameObject struct {
+	Position mgl32.Vec3
+	Rotation mgl32.Quat
+	Velocity mgl32.Vec3
+	Scale    float32
+	Mass     float32
+	Charge   float32
+	Fields   []Force
+	Material Material
+	Mesh     *ComplexMesh
+	Scene    *Scene
+}
+
+GameObject render looks like this:
+
+func (g *GameObject) Render(projMatrix mgl32.Mat4, viewMatrix mgl32.Mat4) {
+	modelMatrix := g.getModelMatrix()
+
+	renderer := *g.Scene.Renderer
+
+	renderer.Render(g.Mesh, g.Material, modelMatrix, projMatrix, viewMatrix)
+}
+
+func (g *GameObject) getModelMatrix() mgl32.Mat4 {
+	modelMatrix := mgl32.Translate3D(g.Position.X(), g.Position.Y(), g.Position.Z())
+	modelMatrix = modelMatrix.Mul4(mgl32.Scale3D(g.Scale, g.Scale, g.Scale))
+	modelMatrix = modelMatrix.Mul4(g.Rotation.Mat4())
+	return modelMatrix
+}
+
+
+Forward Renderer looks like this:
+
+type ForwardRenderer struct {
+	window *glfw.Window
+	camera *Camera
+}
+
+func NewForwardRenderer(window *glfw.Window, camera *Camera) ForwardRenderer {
+	return ForwardRenderer{
+		window: window,
+		camera: camera,
+	}
+}
+
+func (fr *ForwardRenderer) Render(mesh *ComplexMesh, material Material, model mgl32.Mat4, proj mgl32.Mat4, view mgl32.Mat4) {
+	shaderProgram := material.GetShader()
+
+	shaderProgram.Use()
+
+	// Bind the material properties to the shader program
+	if err := material.BindShaderProperties(shaderProgram); err != nil {
+		panic(err)
+	}
+
+	// Set the model, view, and projection matrices for the shader program
+	shaderProgram.SetMat4UniformLocation("model", &model)
+	shaderProgram.SetMat4UniformLocation("view", &view)
+	shaderProgram.SetMat4UniformLocation("projection", &proj)
+
+	// Bind the mesh data
+	gl.BindVertexArray(mesh.Vao)
+	gl.DrawElements(gl.TRIANGLES, mesh.VertexCount, gl.UNSIGNED_INT, nil)
+	gl.BindVertexArray(0)
+
+	shaderProgram.Unuse()
+}
+
+
+The Fragment Shader looks like this:
+#version 410 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+
+uniform vec3 objectColor;
+
+void main()
+{
+    vec3 lightColor = vec3(1.0, 1.0, 1.0); // Uniform light color
+    vec3 lightDirection = normalize(vec3(1.0, 1.0, 1.0)); // Uniform light direction
+
+    // Calculate diffuse lighting
+    float diffuse = max(dot(Normal, lightDirection), 0.0);
+
+    // Calculate final color as the object color multiplied by the diffuse lighting factor
+    vec3 finalColor = objectColor * diffuse;
+
+    FragColor = vec4(finalColor, 1.0);
+}
+
+
+The Vertex Shader looks like this:
+#version 410 core
+
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 normal;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 FragPos;
+out vec3 Normal;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(position, 1.0);
+    FragPos = vec3(model * vec4(position, 1.0));
+    Normal = mat3(transpose(inverse(model))) * normal;
+}
+
+
+
+Reply only with the errors and description of how to fix them, do not describe the code.

@@ -1,56 +1,14 @@
 package engine
 
 import (
-	"fmt"
 	"github.com/go-gl/gl/v4.1-core/gl"
-	"github.com/go-gl/mathgl/mgl32"
 	"log"
 	"unsafe"
 )
 
 type ShaderProgram struct {
 	program                uint32
-	UniformLocationCache   map[string]uint32
-	AttribLocationCache    map[string]uint32
 	shaderReferenceTracker int64
-}
-
-func (s *ShaderProgram) GetUniformLocation(name string) uint32 {
-
-	if s.UniformLocationCache == nil {
-		s.UniformLocationCache = make(map[string]uint32)
-	}
-
-	if loc, ok := s.UniformLocationCache[name]; ok {
-		return loc
-	}
-
-	loc := gl.GetUniformLocation(s.program, gl.Str(name+"\x00"))
-	if loc == -1 {
-		fmt.Printf("Could not find uniform %s", name)
-	} else {
-		s.UniformLocationCache[name] = uint32(loc)
-	}
-	return uint32(loc)
-}
-
-func (s *ShaderProgram) GetAttribLocation(name string) uint32 {
-
-	if s.AttribLocationCache == nil {
-		s.AttribLocationCache = make(map[string]uint32)
-	}
-
-	if loc, ok := s.AttribLocationCache[name]; ok {
-		return loc
-	}
-
-	loc := gl.GetAttribLocation(s.program, gl.Str(name+"\x00"))
-	if loc == -1 {
-		fmt.Printf("Could not find attrib %s", name)
-	} else {
-		s.AttribLocationCache[name] = uint32(loc)
-	}
-	return uint32(loc)
 }
 
 func (s *ShaderProgram) Use() {
@@ -61,54 +19,8 @@ func (s *ShaderProgram) Unuse() {
 	gl.UseProgram(0)
 }
 
-func (s *ShaderProgram) SetFloat32UniformLocation(key string, value *float32) {
-	loc := s.GetUniformLocation(key)
-	gl.UniformMatrix4fv(int32(loc), 1, false, value)
-}
-
-func (s *ShaderProgram) SetMat4UniformLocation(key string, value *mgl32.Mat4) {
-	loc := s.GetUniformLocation(key)
-	gl.UniformMatrix4fv(int32(loc), 1, false, &value[0])
-}
-
-func (s *ShaderProgram) SetVec3UniformLocation(key string, value *float32) {
-	loc := s.GetUniformLocation(key)
-	gl.Uniform3fv(int32(loc), 1, value)
-}
-
-func (s *ShaderProgram) SetFloatUniformLocation(key string, value float32) {
-	loc := s.GetUniformLocation(key)
-	gl.Uniform1f(int32(loc), value)
-}
-
-func (s *ShaderProgram) SetIntUniformLocation(key string, value int32) {
-	loc := s.GetUniformLocation(key)
-	gl.Uniform1i(int32(loc), value)
-}
-
-func (s *ShaderProgram) SetFloat32AttribLocation(key string, value *float32) {
-	loc := s.GetAttribLocation(key)
-	gl.UniformMatrix4fv(int32(loc), 1, false, value)
-}
-
-func (s *ShaderProgram) SetMat4AttribLocation(key string, value *mgl32.Mat4) {
-	loc := s.GetAttribLocation(key)
-	gl.UniformMatrix4fv(int32(loc), 1, false, &value[0])
-}
-
-func (s *ShaderProgram) SetVec3AttribLocation(key string, value *float32) {
-	loc := s.GetAttribLocation(key)
-	gl.Uniform3fv(int32(loc), 1, value)
-}
-
-func (s *ShaderProgram) SetFloatAttribLocation(key string, value float32) {
-	loc := s.GetAttribLocation(key)
-	gl.Uniform1f(int32(loc), value)
-}
-
-func (s *ShaderProgram) SetIntAttribLocation(key string, value int32) {
-	loc := s.GetAttribLocation(key)
-	gl.Uniform1i(int32(loc), value)
+func (s *ShaderProgram) Handle() uint32 {
+	return s.program
 }
 
 func LoadShader(vertShader string, fragShader string) *ShaderProgram {
@@ -183,5 +95,6 @@ func NewShaderProgram(vertexShaderPath, fragmentShaderPath string) (*ShaderProgr
 	gl.DeleteShader(vertexShader)
 	gl.DeleteShader(fragmentShader)
 
-	return &ShaderProgram{program: program, UniformLocationCache: map[string]uint32{}, AttribLocationCache: map[string]uint32{}}, nil
+	return &ShaderProgram{program: program}, nil
+
 }

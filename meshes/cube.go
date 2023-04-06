@@ -2,75 +2,54 @@ package meshes
 
 import . "physics/engine"
 
-func NewCube(size int32) Mesh {
+func NewCube(size int32) *ComplexMesh {
+
+	// Calculate half of the size to simplify vertex calculations
 	halfSize := float32(size / 2.0)
 
-	vertices := []float32{
-		// front face
-		-halfSize, -halfSize, halfSize, 1.0, 0.0, 0.0, 0.0, 0.0,
-		halfSize, -halfSize, halfSize, 1.0, 0.0, 0.0, 1.0, 0.0,
-		halfSize, halfSize, halfSize, 1.0, 0.0, 0.0, 1.0, 1.0,
-		-halfSize, halfSize, halfSize, 1.0, 0.0, 0.0, 0.0, 1.0,
-
-		// back face
-		-halfSize, -halfSize, -halfSize, 0.0, 1.0, 0.0, 0.0, 0.0,
-		halfSize, -halfSize, -halfSize, 0.0, 1.0, 0.0, 1.0, 0.0,
-		halfSize, halfSize, -halfSize, 0.0, 1.0, 0.0, 1.0, 1.0,
-		-halfSize, halfSize, -halfSize, 0.0, 1.0, 0.0, 0.0, 1.0,
-
-		// top face
-		-halfSize, halfSize, halfSize, 0.0, 0.0, 1.0, 0.0, 0.0,
-		halfSize, halfSize, halfSize, 0.0, 0.0, 1.0, 1.0, 0.0,
-		halfSize, halfSize, -halfSize, 0.0, 0.0, 1.0, 1.0, 1.0,
-		-halfSize, halfSize, -halfSize, 0.0, 0.0, 1.0, 0.0, 1.0,
-
-		// bottom face
-		-halfSize, -halfSize, halfSize, 1.0, 1.0, 0.0, 0.0, 0.0,
-		halfSize, -halfSize, halfSize, 1.0, 1.0, 0.0, 1.0, 0.0,
-		halfSize, -halfSize, -halfSize, 1.0, 1.0, 0.0, 1.0, 1.0,
-		-halfSize, -halfSize, -halfSize, 1.0, 1.0, 0.0, 0.0, 1.0,
-
-		// right face
-		halfSize, -halfSize, halfSize, 0.0, 1.0, 1.0, 0.0, 0.0,
-		halfSize, halfSize, halfSize, 0.0, 1.0, 1.0, 1.0, 0.0,
-		halfSize, halfSize, -halfSize, 0.0, 1.0, 1.0, 1.0, 1.0,
-		halfSize, -halfSize, -halfSize, 0.0, 1.0, 1.0, 0.0, 1.0,
-
-		// left face
-		-halfSize, -halfSize, halfSize, 1.0, 0.0, 1.0, 0.0, 0.0,
-		-halfSize, halfSize, halfSize, 1.0, 0.0, 1.0, 1.0, 0.0,
-		-halfSize, halfSize, -halfSize, 1.0, 0.0, 1.0, 1.0, 1.0,
-		-halfSize, -halfSize, -halfSize, 1.0, 0.0, 1.0, 0.0, 1.0,
+	// Define the vertices of the cube
+	vertices := []Vertex{
+		{-halfSize, -halfSize, halfSize},
+		{halfSize, -halfSize, halfSize},
+		{halfSize, halfSize, halfSize},
+		{-halfSize, halfSize, halfSize},
+		{-halfSize, -halfSize, -halfSize},
+		{halfSize, -halfSize, -halfSize},
+		{halfSize, halfSize, -halfSize},
+		{-halfSize, halfSize, -halfSize},
 	}
 
-	indices := []uint32{
-		// front face
-		0, 1, 2,
-		2, 3, 0,
-
-		// back face
-		4, 5, 6,
-		6, 7, 4,
-
-		// top face
-		8, 9, 10,
-		10, 11, 8,
-
-		// bottom face
-		12, 13, 14,
-		14, 15, 12,
-
-		// right face
-		16, 17, 18,
-		18, 19, 16,
-
-		// left face
-		20, 21, 22,
-		22, 23, 20,
+	// Define the texture coordinates of the cube (not used in this case)
+	texCoords := []TexCoord{
+		{0, 0},
+		{1, 0},
+		{1, 1},
+		{0, 1},
 	}
 
-	// Create a new mesh from the sphere data
-	mesh := NewBasicMesh(vertices, indices)
+	// Define the normals of the cube (uniformly facing outwards)
+	normals := []Normal{
+		{0, 0, 1},
+		{1, 0, 0},
+		{0, 0, -1},
+		{-1, 0, 0},
+		{0, 1, 0},
+		{0, -1, 0},
+	}
+
+	// Define the indices of the cube, referencing the vertices, texCoords and normals positions in the other arrays
+	indices := []FaceVertex{
+		{0, 0, 0}, {1, 0, 0}, {2, 0, 0}, {2, 0, 0}, {3, 0, 0}, {0, 0, 0},
+		{1, 0, 1}, {5, 0, 1}, {6, 0, 1}, {6, 0, 1}, {2, 0, 1}, {1, 0, 1},
+		{7, 0, 2}, {6, 0, 2}, {5, 0, 2}, {5, 0, 2}, {4, 0, 2}, {7, 0, 2},
+		{4, 0, 3}, {0, 0, 3}, {3, 0, 3}, {3, 0, 3}, {7, 0, 3}, {4, 0, 3},
+		{4, 0, 4}, {5, 0, 4}, {1, 0, 4}, {1, 0, 4}, {0, 0, 4}, {4, 0, 4},
+		{3, 0, 5}, {2, 0, 5}, {6, 0, 5}, {6, 0, 5}, {7, 0, 5}, {3, 0, 5},
+	}
+
+	// Create a new ComplexMesh object
+	mesh := NewComplexMesh(vertices, texCoords, normals, indices)
 
 	return mesh
+
 }
