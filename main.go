@@ -55,7 +55,12 @@ func main() {
 		print("hello")
 	}
 
+	forwardRenderer := NewForwardRenderer(window, camera)
+
 	for _, mesh := range objFileMeshes.Objects {
+		if mesh == nil {
+			continue
+		}
 		basicMesh := NewComplexMesh(mesh.Vertices, mesh.TexCoords, mesh.Normals, mesh.FaceIndices)
 		scene.AddObject(&GameObject{
 			Position: mgl32.Vec3{0.0, 0.0, 10.0},
@@ -65,6 +70,7 @@ func main() {
 			Mass:     3,
 			Mesh:     basicMesh,
 			Material: NewBasicMaterial(),
+			Renderer: forwardRenderer,
 		})
 	}
 

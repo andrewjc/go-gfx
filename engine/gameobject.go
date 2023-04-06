@@ -13,7 +13,7 @@ type GameObject struct {
 	Charge   float32
 	Fields   []Force
 	Material Material
-	Mesh     *Mesh
+	Mesh     *ComplexMesh
 	Scene    *Scene
 
 	Renderer ObjectRenderer
