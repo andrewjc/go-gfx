@@ -1,22 +1,39 @@
 #version 410 core
 
-out vec4 FragColor;
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+    sampler2D texture;
+};
 
-in vec3 FragPos;
+uniform Material material;
+
+in vec2 TexCoord;
 in vec3 Normal;
+in vec3 FragPos;
 
-uniform vec3 objectColor;
+out vec4 FragColor;
 
 void main()
 {
-    vec3 lightColor = vec3(1.0, 1.0, 1.0); // Uniform light color
-    vec3 lightDirection = normalize(vec3(1.0, 1.0, 1.0)); // Uniform light direction
+    // Ambient
+    vec3 ambient = material.ambient * texture(material.texture, TexCoord).rgb;
 
-    // Calculate diffuse lighting
-    float diffuse = max(dot(Normal, lightDirection), 0.0);
+    // Diffuse
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = normalize(vec3(0.0, 0.0, 1.0)); // For simplicity, we set light direction as a constant
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = material.diffuse * diff * texture(material.texture, TexCoord).rgb;
 
-    // Calculate final color as the object color multiplied by the diffuse lighting factor
-    vec3 finalColor = objectColor * diffuse;
+    // Specular
+    vec3 viewDir = normalize(-FragPos);
+    vec3 reflectDir = reflect(-lightDir, norm);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 specular = material.specular * spec * texture(material.texture, TexCoord).rgb;
 
-    FragColor = vec4(finalColor, 1.0);
+    // Combine components
+    vec3 result = ambient + diffuse + specular;
+    FragColor = vec4(result, 1.0);
 }

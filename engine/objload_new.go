@@ -48,17 +48,25 @@ type FaceVertex struct {
 	NormalIndex   int
 }
 
+type CombinedVertex struct {
+	Position mgl32.Vec3
+	TexCoord mgl32.Vec2
+	Normal   mgl32.Vec3
+}
+
 type ImportedModel struct {
 	Objects         []*ImportedMeshObj
 	materialLibrary map[string]material
 }
 
 type ImportedMeshObj struct {
-	Name        string
-	Vertices    []Vertex
-	TexCoords   []TexCoord
-	Normals     []Normal
-	FaceIndices []FaceVertex
+	Name           string
+	Vertices       []Vertex
+	Indices        []uint32
+	CombinedVertex []CombinedVertex
+	TexCoords      []TexCoord
+	Normals        []Normal
+	FaceIndices    []FaceVertex
 }
 
 type material struct {
@@ -100,7 +108,7 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 	model := &ImportedModel{
 		Objects: make([]*ImportedMeshObj, 0),
 	}
-	var currentObject *ImportedMeshObj
+	currentObject := &ImportedMeshObj{}
 	model.Objects = append(model.Objects, currentObject)
 
 	scanner := bufio.NewScanner(bytes.NewReader(fileContents))
@@ -122,7 +130,7 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 				Name: fields[1],
 			}
 			model.Objects = append(model.Objects, currentObject)
-		case "V":
+		case "v":
 			v, err := LdrParseVertex(line)
 			if err != nil {
 				return nil, err
@@ -141,14 +149,29 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 			}
 			currentObject.Normals = append(currentObject.Normals, n)
 		case "f":
-			faceIndices := make([]int, 0)
+			faceVertices := make([]FaceVertex, 0, len(fields)-1)
 			for _, field := range fields[1:] {
 				f, err := LdrParseFaceVertex(field)
 				if err != nil {
-					return nil, fmt.Errorf("could not parse face Vertex: %V", err)
+					return nil, fmt.Errorf("could not parse face vertex: %v", err)
 				}
-				currentObject.AddFaceVertex(f)
-				faceIndices = append(faceIndices, len(currentObject.FaceIndices)-1)
+				faceVertices = append(faceVertices, f)
+			}
+
+			for _, faceVertex := range faceVertices {
+				combinedVertex := CombinedVertex{
+					Position: currentObject.Vertices[faceVertex.VertexIndex].ToVec3(),
+					Normal:   currentObject.Normals[faceVertex.NormalIndex].ToVec3(),
+				}
+				if len(currentObject.TexCoords) > faceVertex.TexCoordIndex {
+					combinedVertex.TexCoord = currentObject.TexCoords[faceVertex.TexCoordIndex].ToVec2()
+				}
+				index := findExistingCombinedVertexIndex(currentObject.CombinedVertex, combinedVertex)
+				if index == -1 {
+					currentObject.CombinedVertex = append(currentObject.CombinedVertex, combinedVertex)
+					index = len(currentObject.CombinedVertex) - 1
+				}
+				currentObject.Indices = append(currentObject.Indices, uint32(index))
 			}
 		case "s":
 			continue
@@ -207,6 +230,15 @@ func LdrParseObj(filePath string) (*ImportedModel, error) {
 		}
 	}
 	return model, nil
+}
+
+func findExistingCombinedVertexIndex(combinedVertices []CombinedVertex, target CombinedVertex) int {
+	for i, v := range combinedVertices {
+		if v.Position == target.Position && v.TexCoord == target.TexCoord && v.Normal == target.Normal {
+			return i
+		}
+	}
+	return -1
 }
 
 func LdrParseMtlLib(path string) (map[string]material, error) {

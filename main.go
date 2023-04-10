@@ -32,6 +32,10 @@ func main() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LESS)
 
+	// Enable blending for rendering transparency
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
 	scene, err := NewScene(window)
 	if err != nil {
 		print("Failed creating scene")
@@ -39,13 +43,13 @@ func main() {
 	}
 
 	camera := scene.CreateCamera(
-		mgl32.Vec3{0, 0, -15},
-		mgl32.Vec3{0, 0, 0},
+		mgl32.Vec3{0, 10, -15}, // Changed camera position
+		mgl32.Vec3{0, 0, 0},    // Changed camera target
 		mgl32.Vec3{0, 1, 0},
 	)
 	scene.Camera = camera
 
-	objFileMeshes, err := LdrParseObj("mapdata/doom_E1M1.obj")
+	objFileMeshes, err := LdrParseObj("meshes/sphere.obj")
 	if err != nil {
 		print("Failed loading obj file")
 		log.Fatal(err)
@@ -61,14 +65,25 @@ func main() {
 		if mesh == nil {
 			continue
 		}
-		basicMesh := NewMesh(mesh.Vertices, mesh.TexCoords, mesh.Normals, mesh.FaceIndices)
+		basicMesh := NewMesh(mesh.CombinedVertex, mesh.Indices)
+		normalLinesMesh := NewMeshNormalLines(basicMesh, 0.5)
 		scene.AddObject(&GameObject{
-			Position: mgl32.Vec3{0.0, 0.0, 10.0},
+			Position: mgl32.Vec3{0.0, 0.0, 0.0},
+			Rotation: QuatIdent,
+			Velocity: mgl32.Vec3{},
+			Scale:    1.0,
+			Mass:     3,
+			Mesh:     basicMesh,
+			Material: *NewDefaultMaterial(),
+		})
+
+		scene.AddObject(&GameObject{
+			Position: mgl32.Vec3{0.0, 0.0, 0.0},
 			Rotation: QuatIdent,
 			Velocity: mgl32.Vec3{},
 			Scale:    5.0,
 			Mass:     3,
-			Mesh:     basicMesh,
+			Mesh:     normalLinesMesh,
 			Material: *NewDefaultMaterial(),
 		})
 	}

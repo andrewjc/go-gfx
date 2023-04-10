@@ -37,6 +37,18 @@ func (s *ShaderProgram) GetAttribLocation(key string) uint32 {
 	return uint32(gl.GetAttribLocation(s.program, gl.Str(key+"\x00")))
 }
 
+func (s *ShaderProgram) SetUniform3f(uniform int32, x float32, y float32, z float32) {
+	gl.Uniform3f(uniform, x, y, z)
+}
+
+func (s *ShaderProgram) SetUniform1f(uniform int32, value float32) {
+	gl.Uniform1f(uniform, value)
+}
+
+func (s *ShaderProgram) SetUniform1i(uniform int32, value int) {
+	gl.Uniform1i(uniform, int32(value))
+}
+
 func LoadShader(vertShader string, fragShader string) *ShaderProgram {
 	shaderProgram, err := NewShaderProgram(vertShader, fragShader)
 	if err != nil {
