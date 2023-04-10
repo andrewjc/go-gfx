@@ -2,6 +2,7 @@ package engine
 
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 	"log"
 	"unsafe"
 )
@@ -21,6 +22,19 @@ func (s *ShaderProgram) Unuse() {
 
 func (s *ShaderProgram) Handle() uint32 {
 	return s.program
+}
+
+func (s *ShaderProgram) SetMat4UniformLocation(key string, value *mgl32.Mat4) {
+	loc := s.GetUniformLocation(key)
+	gl.UniformMatrix4fv(loc, 1, false, &value[0])
+}
+
+func (s *ShaderProgram) GetUniformLocation(key string) int32 {
+	return gl.GetUniformLocation(s.program, gl.Str(key+"\x00"))
+}
+
+func (s *ShaderProgram) GetAttribLocation(key string) uint32 {
+	return uint32(gl.GetAttribLocation(s.program, gl.Str(key+"\x00")))
 }
 
 func LoadShader(vertShader string, fragShader string) *ShaderProgram {

@@ -55,13 +55,13 @@ func main() {
 		print("hello")
 	}
 
-	forwardRenderer := NewForwardRenderer(window, camera)
+	forwardRenderer := NewForwardRenderer(window)
 
 	for _, mesh := range objFileMeshes.Objects {
 		if mesh == nil {
 			continue
 		}
-		basicMesh := NewComplexMesh(mesh.Vertices, mesh.TexCoords, mesh.Normals, mesh.FaceIndices)
+		basicMesh := NewMesh(mesh.Vertices, mesh.TexCoords, mesh.Normals, mesh.FaceIndices)
 		scene.AddObject(&GameObject{
 			Position: mgl32.Vec3{0.0, 0.0, 10.0},
 			Rotation: QuatIdent,
@@ -69,8 +69,7 @@ func main() {
 			Scale:    5.0,
 			Mass:     3,
 			Mesh:     basicMesh,
-			Material: NewBasicMaterial(),
-			Renderer: forwardRenderer,
+			Material: *NewDefaultMaterial(),
 		})
 	}
 
@@ -132,7 +131,7 @@ func main() {
 		scene.Update(float32(dt))
 
 		// Render the objects in the scene
-		scene.Render(camera)
+		forwardRenderer.RenderPrimaryCamera(scene)
 
 		// Swap buffers
 		window.SwapBuffers()

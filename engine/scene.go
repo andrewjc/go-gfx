@@ -55,7 +55,7 @@ func (s *Scene) Update(dt float32) {
 	}
 }
 
-func (s *Scene) Render(camera *Camera) {
+func (s *Scene) Render(renderer *ForwardRenderer, camera *Camera) {
 	// Clear the screen
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -65,7 +65,7 @@ func (s *Scene) Render(camera *Camera) {
 	// Loop over all objects and render them
 	for _, obj := range s.Objects {
 		// Render the object
-		obj.Render(proj, view)
+		renderer.RenderObject(obj.Mesh, obj.Material, obj.getModelMatrix(), proj, view)
 	}
 }
 

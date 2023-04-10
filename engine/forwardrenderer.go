@@ -8,17 +8,19 @@ import (
 
 type ForwardRenderer struct {
 	window *glfw.Window
-	camera *Camera
 }
 
-func NewForwardRenderer(window *glfw.Window, camera *Camera) *ForwardRenderer {
+func NewForwardRenderer(window *glfw.Window) *ForwardRenderer {
 	return &ForwardRenderer{
 		window: window,
-		camera: camera,
 	}
 }
 
-func (r *ForwardRenderer) RenderObject(obj ObjectRenderer, mesh *ComplexMesh, material Material, model mgl32.Mat4, proj mgl32.Mat4, view mgl32.Mat4) {
+func (r *ForwardRenderer) RenderPrimaryCamera(scene *Scene) {
+	scene.Render(r, scene.Camera)
+}
+
+func (r *ForwardRenderer) RenderObject(mesh *Mesh, material Material, model mgl32.Mat4, proj mgl32.Mat4, view mgl32.Mat4) {
 	shader := material.GetShader()
 	shader.Use()
 
@@ -41,13 +43,15 @@ func (r *ForwardRenderer) RenderObject(obj ObjectRenderer, mesh *ComplexMesh, ma
 	for attr, attrName := range attribMap {
 		attrLoc := shader.GetAttribLocation(attrName)
 		gl.EnableVertexAttribArray(attrLoc)
+
+		gl.VertexAttribPointer(attrLoc, mesh.GetAttribSize(attr), gl.FLOAT, false, 0, gl.PtrOffset(0))
 	}
 
 	// Render the mesh
-	obj.Render(mesh, material, model, proj, view)
+	gl.DrawElements(gl.TRIANGLES, int32(len(mesh.Indices)), gl.UNSIGNED_INT, gl.PtrOffset(0))
 
 	// Disable attribute pointers
-	for attr, attrName := range attribMap {
+	for _, attrName := range attribMap {
 		attrLoc := shader.GetAttribLocation(attrName)
 		gl.DisableVertexAttribArray(attrLoc)
 	}
